@@ -1,0 +1,22 @@
+---
+- name: Отключить старый swap
+  command: swapoff /swapfile*
+
+- name: Создать новый swapfile
+  command: dd if=/dev/zero of=/swapfile bs=1M count=512
+  args:
+    creates: /swapfile
+
+- name: Установить права для swapfile
+  file:
+    path: /swapfile
+    mode: '0600'
+
+- name: Создать swap на новом файле
+  command: mkswap /swapfile
+
+- name: Включить swap
+  command: swapon /swapfile
+
+- name: Показать информацию о swap
+  command: swapon --show
