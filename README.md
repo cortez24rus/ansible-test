@@ -1,1 +1,1 @@
-# ansible-test
+# ansible-playbook -i inventory.ini main.yml

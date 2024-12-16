@@ -1,0 +1,2 @@
+# Переменные для роли security
+BLOCK_ZONE_PREFIX: "{{ ansible_default_ipv4.address | ipaddr('prefix', 22) }}"
