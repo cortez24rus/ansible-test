@@ -1,2 +1,11 @@
-# Переменные для роли security
+# Переменные для настройки firewall
+common_ports:
+  - { name: '443', proto 'tcp' }
+  - { name: '36079', proto 'tcp' }
+
+# Переменные для блокировки IP-диапазона
 BLOCK_ZONE_PREFIX: "{{ ansible_default_ipv4.address | ipaddr('prefix', 22) }}"
+
+# Условие для определения систем
+is_debian_based: "{{ ansible_facts['distribution'] in ['Debian', 'Ubuntu'] }}"
+is_centos_based: "{{ ansible_facts['distribution'] in ['CentOS', 'Fedora'] }}"

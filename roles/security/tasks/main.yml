@@ -1,62 +1,45 @@
+# roles/firewall/tasks/main.yml
+
 ---
-- name: Check the operating system
-  ansible.builtin.set_fact:
-    is_debian_based: "{{ ansible_facts.os_family in ['Debian', 'Ubuntu'] }}"
-    is_centos_based: "{{ ansible_facts.os_family in ['RedHat', 'CentOS', 'Fedora'] }}"
-
 - name: Setup firewall for Debian/Ubuntu
-  when: is_debian_based
+  when: "{{ is_debian_based }}"
   block:
-    - name: Reset UFW rules
+    - name: Open common ports and deny traffic from BLOCK_ZONE_IP in UFW
       ufw:
-        state: reset
-
-    - name: Allow port 36079/tcp
-      ufw:
-        rule: allow
-        name: "36079"
-        proto: tcp
-
-    - name: Allow port 443/tcp
-      ufw:
-        rule: allow
-        name: "443"
-        proto: tcp
-
-    - name: Deny traffic from BLOCK_ZONE_IP
-      ufw:
-        rule: deny
-        from_ip: "{{ ansible_default_ipv4.address | ipaddr('prefix', 22) }}"
-        proto: all
+        rule: "{{ item.rule }}"
+        name: "{{ item.name }}"
+        from_ip: "{{ item.from_ip }}"
+        proto: "{{ item.proto }}"
+        state: "{{ item.state }}"
+      loop:
+        - { rule: 'allow', name: "{{ item.name }}", proto: "{{ item.proto }}", state: 'enable' }
+        - { rule: 'deny', from_ip: "{{ BLOCK_ZONE_PREFIX }}", proto: 'all', state: 'enable' }
+      loop-control:
+        loop_var: item
 
     - name: Enable UFW
       ufw:
-        state: enabled
+        state: enable
 
 - name: Setup firewall for CentOS/Fedora
-  when: is_centos_based
-  block:
+  when: "{{ is_centos_based }}"
+  block: 
     - name: Enable firewalld
       systemd:
         name: firewalld
         enabled: yes
         state: started
 
-    - name: Allow port 36079/tcp in firewalld
+    - name: Allow ports in firewalld
       firewalld:
-        port: 36079/tcp
+        port: "{{ item.name }}/tcp"
         permanent: yes
         state: enabled
+      loop: "{{ common_ports }}"
 
-    - name: Allow port 443/tcp in firewalld
+    - name: Deny traffic from BLOCK_ZONE_IP
       firewalld:
-        port: 443/tcp
-        permanent: yes
-        state: enabled
-
-    - name: Deny traffic from BLOCK_ZONE_IP in firewalld
-      firewalld:
-        rich_rule: "rule family='ipv4' source address='{{ ansible_default_ipv4.address | ipaddr('prefix', 22) }}' reject"
+        rich_rule: "rule family='ipv4' source address='{{ BLOCK_ZONE_PREFIX }}' reject"
         permanent: yes
         state: enabled
 
